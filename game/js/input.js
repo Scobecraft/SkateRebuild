@@ -12,6 +12,7 @@ CF.Input = (() => {
   addEventListener('keydown', e => {
     if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Tab'].includes(e.code)) e.preventDefault();
     if (!keys[e.code]) pressed.add(e.code);
+    if (e.ctrlKey || e.metaKey) { pressed.add('Ctrl+' + e.code); if (['KeyS', 'KeyZ', 'KeyY', 'KeyD'].includes(e.code) && document.body.classList.contains('editing')) e.preventDefault(); }
     if (e.key && e.key.length === 1) { typed.push(e.key.toLowerCase()); if (typed.length > 16) typed.shift(); }
     keys[e.code] = true;
     CF.Audio.init();

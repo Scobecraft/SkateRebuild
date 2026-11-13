@@ -60,7 +60,7 @@ window.CF = window.CF || {};
       ssao.kernelRadius = 0.7; ssao.minDistance = 0.0004; ssao.maxDistance = 0.03;
       composer.addPass(ssao);
     }
-    const bloom = new X.UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.32, 0.55, 0.92);
+    const bloom = new X.UnrealBloomPass(new THREE.Vector2(innerWidth / 2, innerHeight / 2), 0.2, 0.4, 2.2); // nur echte Lichtquellen glühen
     composer.addPass(bloom);
     const aces = new X.ShaderPass(X.ACESFilmicToneMappingShader); composer.addPass(aces);
     composer.addPass(new X.ShaderPass(X.GammaCorrectionShader));
@@ -72,7 +72,7 @@ window.CF = window.CF || {};
     if (!post) { renderer.render(scene, camera); return; }
     post.aces.uniforms.exposure.value = renderer.toneMappingExposure;
     post.grade.uniforms.uTime.value = (post.grade.uniforms.uTime.value + 1.37) % 1000;
-    post.bloom.strength = CF.Env.isNight ? 0.42 : 0.28;
+    post.bloom.strength = CF.Env.isNight ? 0.5 : 0.15; post.bloom.threshold = CF.Env.isNight ? 1.2 : 2.6;
     post.composer.render();
   }
   addEventListener('resize', resize); resize();
@@ -304,6 +304,8 @@ window.CF = window.CF || {};
         { label: 'Free Skate', act: () => startGame('free') },
         { label: 'Highscore-Session (3 Min)', act: () => startGame('session') },
         { label: 'Spot wählen', act: () => openMenu('spots') },
+        { label: '🛠 Map-Editor', act: () => openMenu('editorMenu') },
+        { label: 'Eigene Maps spielen', act: () => openMenu('myMaps') },
         { label: () => 'Outfit: ' + CF.OUTFITS[settings.outfit].name, side: d => cycleOutfit(d), act: () => openMenu('outfits') },
         { label: 'Profil & Challenges', act: () => openMenu('goals') },
         { label: 'Einstellungen', act: () => openMenu('settings') },
@@ -331,8 +333,52 @@ window.CF = window.CF || {};
         act: () => { if (CF.Progress.outfitUnlocked(i)) { settings.outfit = i; CF.Skater.setOutfit(i); save(); } else toast(`🔒 Freischaltung ab Level ${CF.Progress.outfitLevel(i)}`); },
       })).concat([{ label: 'Zurück', act: back }]),
     }),
+    editorMenu: () => ({
+      title: 'MAP-EDITOR', sub: 'Baue deinen eigenen Skatepark',
+      items: [
+        { label: 'Neue Map – leere Fläche', act: () => openEditor(CF.Editor.newMap('leer')) },
+        { label: 'Neue Map – Megapark als Basis', act: () => openEditor(CF.Editor.newMap('megapark')) },
+        { label: 'Bestehende Map bearbeiten', act: () => { mapListMode = 'edit'; openMenu('mapList'); } },
+        { label: 'Map importieren (.cfmap.json)', act: () => CF.Editor.importMap(() => renderMenu()) },
+        { label: 'Zurück', act: back },
+      ],
+    }),
+    myMaps: () => { mapListMode = 'play'; return MENUS.mapList(); },
+    mapList: () => {
+      const maps = Object.values(CF.Editor.allMaps()).sort((a, b) => (b.updated || 0) - (a.updated || 0));
+      return {
+        title: mapListMode === 'edit' ? 'MAP BEARBEITEN' : 'EIGENE MAPS',
+        html: maps.length ? '' : '<p class="tip">Noch keine eigenen Maps – erstelle eine im Map-Editor oder importiere eine Datei.</p>',
+        items: maps.map(m => ({ label: `${m.name} · ${m.pieces.length} Objekte`, act: () => { selMapId = m.id; delArmed = false; openMenu('mapActions'); } }))
+          .concat([{ label: 'Map importieren', act: () => CF.Editor.importMap(() => renderMenu()) }, { label: 'Zurück', act: back }]),
+      };
+    },
+    mapActions: () => {
+      const m = CF.Editor.allMaps()[selMapId];
+      if (!m) return { title: 'MAP', items: [{ label: 'Zurück', act: back }] };
+      return {
+        title: m.name.toUpperCase(), sub: `${m.base === 'leer' ? 'Leere Fläche' : 'Megapark-Basis'} · ${m.pieces.length} Objekte`,
+        items: [
+          { label: 'Free Skate', act: () => startGame('free', null, m) },
+          { label: 'Highscore-Session (3 Min)', act: () => startGame('session', null, m) },
+          { label: 'Bearbeiten', act: () => openEditor(JSON.parse(JSON.stringify(m))) },
+          { label: 'Exportieren', act: () => { CF.Editor.exportMap(m); toast(isElectron ? '⤓ Exportiert nach Dokumente › Concrete Flow › Maps' : '⤓ Map exportiert'); } },
+          { label: () => delArmed ? '⚠ Wirklich löschen? Nochmal bestätigen' : 'Löschen', act: () => { if (!delArmed) { delArmed = true; return; } CF.Editor.deleteMap(m.id); toast('Map gelöscht'); back(); } },
+          { label: 'Zurück', act: back },
+        ],
+      };
+    },
+    leaveEditor: () => ({
+      title: 'EDITOR BEENDEN?', sub: 'Es gibt ungespeicherte Änderungen',
+      items: [
+        { label: 'Speichern und beenden', act: () => { CF.Editor.save(); exitEditor(); } },
+        { label: 'Ohne Speichern beenden', act: () => exitEditor() },
+        { label: 'Abbrechen', act: back },
+      ],
+    }),
     spots: () => ({
-      title: 'SPOT WÄHLEN', items: CF.World.spawns.map(s => ({ label: s.name, act: () => { if (mode === 'menu') startGame('free', s); else { closeMenus(); teleport(s); resume(); } } }))
+      title: 'SPOT WÄHLEN', items: (currentMap ? [CF.World.defaultSpawn()].concat(currentMap.base === 'leer' ? [] : CF.World.spawns) : CF.World.spawns)
+        .map(s => ({ label: s.name, act: () => { if (mode === 'menu') startGame('free', s, currentMap); else { closeMenus(); teleport(s); resume(); } } }))
         .concat([{ label: 'Zurück', act: back }]),
     }),
     settings: () => ({
@@ -360,7 +406,7 @@ window.CF = window.CF || {};
     controls: () => ({ title: 'STEUERUNG', html: $('controls-tpl').innerHTML, items: [{ label: 'Zurück', act: back }] }),
   };
   function openMenu(name) { menuStack.push(name); focus = 0; renderMenu(); CF.Audio.uiOk(); }
-  function back() { menuStack.pop(); focus = 0; if (!menuStack.length) { if (mode === 'pause') resume(); else menuStack.push('main'); } renderMenu(); CF.Audio.ui(); }
+  function back() { menuStack.pop(); focus = 0; if (!menuStack.length) { if (mode === 'pause') resume(); else if (mode === 'edmenu') { returnToEditor(); return; } else menuStack.push('main'); } renderMenu(); CF.Audio.ui(); }
   function closeMenus() { menuStack = []; $('menu').classList.remove('show'); }
   let curItems = [];
   function renderMenu() {
@@ -408,21 +454,54 @@ window.CF = window.CF || {};
 
   /* ---------------- Spielmodi ---------------- */
   function teleport(sp) { CF.Score.cancel(); Pl.spawn(sp); snapCamera(); }
-  function startGame(m, sp) {
+  /* Maps: null = Megapark, sonst eigene Map aus dem Editor */
+  let currentMap = null, mapListMode = 'play', selMapId = null, delArmed = false, editorTest = false;
+  function useMap(map) {
+    currentMap = map || null;
+    CF.World.loadMap(currentMap);
+    CF.NPC.setCount(currentMap && currentMap.base === 'leer' ? 0 : settings.npcs);
+  }
+  function startGame(m, sp, map) {
     CF.Audio.init();
     closeMenus();
+    if (!editorTest) useMap(map);
+    CF.Skater.root.visible = true;
     session.mode = m; session.score = 0; session.xp = 0; session.time = m === 'session' ? 180 : 0;
-    teleport(sp || CF.World.spawns[0]);
+    Pl.P.lastSafe = null;
+    teleport(sp || CF.World.defaultSpawn());
     CF.Replay.clear();
     mode = 'play';
     document.body.classList.add('playing');
     $('timer').style.display = m === 'session' ? '' : 'none';
     hintT = 14; $('hint').classList.add('show');
-    toast(m === 'session' ? 'Highscore-Session: 3 Minuten – hol so viele Punkte wie möglich!' : 'Free Skate – erkunde den Megapark!', 3500);
+    toast(editorTest ? '▶ Testfahrt – Esc / Menu-Taste: zurück zum Editor' : m === 'session' ? 'Highscore-Session: 3 Minuten – hol so viele Punkte wie möglich!' : currentMap ? `Free Skate – ${currentMap.name}` : 'Free Skate – erkunde den Megapark!', 3500);
   }
   function pause() { mode = 'pause'; menuStack = ['pause']; focus = 0; renderMenu(); CF.Audio.silence(); }
   function resume() { closeMenus(); mode = 'play'; document.body.classList.add('playing'); }
+  /* ---------------- Map-Editor ---------------- */
+  function openEditor(map) {
+    closeMenus(); CF.Audio.silence(); CF.Score.cancel();
+    useMap(map); editorTest = false;
+    mode = 'editor'; document.body.classList.remove('playing');
+    CF.Skater.root.visible = false;
+    CF.Editor.enter(map, camera, canvas);
+  }
+  function testRide(map, cursor) {
+    CF.Editor.suspend(); editorTest = true; currentMap = map;
+    CF.World.loadMap(map);
+    startGame('free', CF.World.defaultSpawn(), map);
+  }
+  function returnToEditor() {
+    closeMenus(); CF.Audio.silence(); CF.Score.cancel();
+    editorTest = false; mode = 'editor'; document.body.classList.remove('playing');
+    CF.Skater.root.visible = false; CF.Editor.resume();
+  }
+  function exitEditor() {
+    CF.Editor.exit(); closeMenus(); editorTest = false;
+    CF.Skater.root.visible = true; useMap(null); toMain();
+  }
   function toMain() {
+    if (currentMap && !CF.Editor.active) useMap(null);
     mode = 'menu'; menuStack = ['main']; focus = 0; renderMenu();
     document.body.classList.remove('playing'); CF.Score.cancel(); CF.Audio.silence();
     $('results').classList.remove('show');
@@ -465,6 +544,7 @@ window.CF = window.CF || {};
     toast, refreshHUD,
     completeAll: () => CHALLENGES.forEach(c => complete(c.id)),
     addScore: n => { session.score += n; career += n; store.set('career', career); },
+    testRide, leaveEditor: dirty => { if (!dirty) { exitEditor(); return; } CF.Editor.suspend(); CF.Editor.resume(); mode = 'edmenu'; menuStack = ['leaveEditor']; focus = 0; renderMenu(); },
   };
 
   /* ---------------- HUD ---------------- */
@@ -504,7 +584,7 @@ window.CF = window.CF || {};
       if (mode === 'play') { Pl.sync(0.0001, { steer: 0 }); }
     } else if (mode === 'play') {
       const inp = CF.Input.sample(rdt);
-      if (inp.pause) { pause(); finish(rdt, focusP, true); return; }
+      if (inp.pause) { if (editorTest) returnToEditor(); else pause(); finish(rdt, focusP, true); return; }
       if (inp.replay) { startReplay(); finish(rdt, focusP, true); return; }
       if (inp.photo) { startPhoto('play'); finish(rdt, focusP, true); return; }
       if (inp.music) toast('♫ ' + CF.Audio.Music.next(), 2000);
@@ -527,6 +607,10 @@ window.CF = window.CF || {};
       });
       updateHUD(rdt);
       CF.Admin.debug(rdt, P);
+    } else if (mode === 'editor') {
+      CF.Editor.update(rdt);
+      CF.NPC.update(rdt, null);
+      focusP = { x: camera.position.x, z: camera.position.z };
     } else if (mode === 'replay') {
       const r = CF.Replay.update(rdt, camera);
       if (r.exit) endReplay();
@@ -541,7 +625,7 @@ window.CF = window.CF || {};
       if (mode === 'menu') { menuCamera(rdt); Pl.sync(rdt, { steer: 0 }); CF.NPC.update(rdt, null); focusP = { x: 0, z: 0 }; }
       if (mode === 'results') {
         const m = CF.Input.menu(rdt);
-        if (m.ok) { $('results').classList.remove('show'); startGame('session'); }
+        if (m.ok) { $('results').classList.remove('show'); startGame('session', null, currentMap); }
         else if (m.back) toMain();
       } else menuInput(rdt);
     }
@@ -553,9 +637,9 @@ window.CF = window.CF || {};
     CF.Input.endFrame();
     renderFrame();
   }
-  $('res-again').onclick = () => { $('results').classList.remove('show'); startGame('session'); };
+  $('res-again').onclick = () => { $('results').classList.remove('show'); startGame('session', null, currentMap); };
   $('res-menu').onclick = () => toMain();
   $('rp-track').onclick = e => { const r = e.currentTarget.getBoundingClientRect(); CF.Replay.seekFraction((e.clientX - r.left) / r.width); };
   requestAnimationFrame(frame);
-  CF.debug = { Pl, session, combo, startGame, camera, renderer, scene, get mode() { return mode; }, startReplay, startPhoto };
+  CF.debug = { Pl, session, combo, startGame, camera, renderer, scene, get mode() { return mode; }, startReplay, startPhoto, openEditor, returnToEditor };
 })();

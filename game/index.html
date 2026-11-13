@@ -56,6 +56,23 @@
     <div class="ph-help">↑/↓ Auswahl · ←/→ Ändern · Enter/Ⓐ Ausführen · Esc/Ⓑ Schließen</div>
   </div>
 </div>
+<!-- Map-Editor -->
+<div id="editor">
+  <div class="ed-top">
+    <input id="ed-name" maxlength="40" spellcheck="false">
+    <span id="ed-info"></span>
+    <span class="ed-spacer"></span>
+    <button id="ed-undo" title="Strg+Z">↶</button><button id="ed-redo" title="Strg+Y">↷</button>
+    <button id="ed-save">💾 Speichern</button><button id="ed-test">▶ Testfahrt (T)</button><button id="ed-export">⤓ Export</button><button id="ed-exit">✕ Beenden</button>
+  </div>
+  <div id="ed-palette"></div>
+  <div id="ed-props"></div>
+  <div id="ed-pos"></div>
+  <div id="ed-cross"></div>
+  <div class="ed-help">Linksklick: setzen/auswählen · Rechts ziehen: drehen · Shift+Rechts/Mitte ziehen: schieben · Mausrad: Zoom · WASD/Pfeile: bewegen · Q/E: Kamera drehen · R: Objekt drehen · G: verschieben · Entf: löschen · Strg+Z/Y · Strg+S · [ ]: Wert ändern<br>
+  🎮 L-Stick: Cursor · R-Stick: Kamera · LT/RT: Zoom · Ⓐ setzen · Ⓑ löschen/zurück · Ⓧ drehen · Ⓨ Testfahrt · LB/RB Objekt · Steuerkreuz: Werte</div>
+  <input type="file" id="ed-file" accept=".json,application/json" hidden>
+</div>
 <div id="toasts"></div>
 
 <!-- Menü -->

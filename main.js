@@ -37,9 +37,10 @@ app.whenReady().then(() => {
     if (!file.startsWith(GAME_DIR)) return new Response('Forbidden', { status: 403 });
     return net.fetch(pathToFileURL(file).toString());
   });
-  // Fotos aus dem Fotomodus landen automatisch unter Bilder\Concrete Flow
+  // Fotos landen unter Bilder\Concrete Flow, exportierte Maps unter Dokumente\Concrete Flow\Maps
   session.defaultSession.on('will-download', (event, item) => {
-    const dir = path.join(app.getPath('pictures'), 'Concrete Flow');
+    const isMap = item.getFilename().endsWith('.cfmap.json');
+    const dir = isMap ? path.join(app.getPath('documents'), 'Concrete Flow', 'Maps') : path.join(app.getPath('pictures'), 'Concrete Flow');
     fs.mkdirSync(dir, { recursive: true });
     item.setSavePath(path.join(dir, item.getFilename()));
   });

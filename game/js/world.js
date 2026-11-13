@@ -6,6 +6,14 @@ CF.World = (() => {
   const rails = [];      // grindbare Segmente
   const spawns = [];
   let scene;
+  /* Ebenen: 'park' (Megapark), 'env' (Umgebung), 'custom' (Map-Editor), 'ghost' (Vorschau) */
+  let cap = null, curLayer = 'park', parkOn = true;
+  const groups = {};
+  let activeSurfaces = [];
+  const activeRails = [];
+  const okLayer = o => o.layer !== 'ghost' && (o.layer !== 'park' || parkOn);
+  function refresh() { activeSurfaces = surfaces.filter(okLayer); activeRails.length = 0; for (const r of rails) if (okLayer(r)) activeRails.push(r); }
+  function add(o) { (cap ? cap.group : (groups[curLayer] || scene)).add(o); }
 
   /* ---------------- Höhenprofile (u = Abstand vom unteren Ende in Metern) ---------------- */
   const Prof = {
@@ -31,7 +39,7 @@ CF.World = (() => {
     return s.axis === 'x' ? { h, gx: m * sg, gz: 0 } : { h, gx: 0, gz: m * sg };
   }
   function evalBase(x, z) {
-    for (const b of bowls) {
+    if (parkOn) for (const b of bowls) {
       const dx = x - b.x, dz = z - b.z, r = Math.hypot(dx, dz);
       if (r >= b.R) continue;
       if (r <= b.r0) return { h: -b.D, gx: 0, gz: 0, bowl: b };
@@ -43,7 +51,7 @@ CF.World = (() => {
   }
   function groundAt(x, z, maxY) {
     let best = evalBase(x, z); best.surf = null;
-    for (const s of surfaces) {
+    for (const s of activeSurfaces) {
       const e = evalSurf(s, x, z);
       if (e && e.h > best.h && e.h <= maxY) { best = e; best.surf = s; }
     }
@@ -51,7 +59,7 @@ CF.World = (() => {
   }
   function blocked(x, z, y, step) {
     if (Math.abs(x) > 119 || Math.abs(z) > 99) return true;
-    for (const s of surfaces) {
+    for (const s of activeSurfaces) {
       const e = evalSurf(s, x, z);
       if (e && e.h > y + step) return true;
     }
@@ -213,13 +221,13 @@ CF.World = (() => {
     if (F.h > 0.001) quad([[0, 0, 0], [0, 0, depth], [0, F.h, depth], [0, F.h, 0]], [-1, 0, 0], [[0, 0], [depth, 0], [depth, F.h], [0, F.h]]);
 
     const mt = new THREE.Mesh(top.geo(), topMat), ms = new THREE.Mesh(side.geo(), sideMat);
-    for (const m of [mt, ms]) { m.castShadow = true; m.receiveShadow = true; scene.add(m); }
+    for (const m of [mt, ms]) { m.castShadow = true; m.receiveShadow = true; add(m); }
     return mt;
   }
   function norm(v) { const l = Math.hypot(...v); return [v[0] / l, v[1] / l, v[2] / l]; }
 
   /* Unsichtbares Hindernis (Laternen, Props) */
-  function collider(x, z, w, d, h) { surfaces.push({ x0: x - w / 2, x1: x + w / 2, z0: z - d / 2, z1: z + d / 2, axis: 'x', rev: false, prof: Prof.flat(h), len: w, invisible: true }); }
+  function collider(x, z, w, d, h) { const s = { x0: x - w / 2, x1: x + w / 2, z0: z - d / 2, z1: z + d / 2, axis: 'x', rev: false, prof: Prof.flat(h), len: w, invisible: true, layer: curLayer }; surfaces.push(s); if (cap) cap.surfaces.push(s); refresh(); }
 
   /* Makro-Variation gegen sichtbare Textur-Wiederholung + leichte Verschmutzung */
   function macroVariation(mat, scale = 0.035, amount = 0.22) {
@@ -310,8 +318,9 @@ CF.World = (() => {
   function addSurf(o) {
     const s = Object.assign({ rev: false, top: M.ramp, sideMat: M.side }, o);
     const span = s.axis === 'x' ? s.x1 - s.x0 : s.z1 - s.z0;
-    s.len = span;
-    surfaces.push(s);
+    s.len = span; s.layer = curLayer;
+    surfaces.push(s); if (cap) cap.surfaces.push(s);
+    refresh();
     if (!s.invisible) profileMeshes(s, s.top, s.sideMat);
     return s;
   }
@@ -335,20 +344,20 @@ CF.World = (() => {
     const A = new THREE.Vector3(...a), B = new THREE.Vector3(...b);
     const dx = B.x - A.x, dz = B.z - A.z, lenXZ = Math.hypot(dx, dz);
     const r = { a: A, b: B, dx, dz, lenXZ, ux: dx / lenXZ, uz: dz / lenXZ, len3: A.distanceTo(B), metal: opts.metal !== false, id: opts.id || null, name: opts.name || null };
-    rails.push(r);
+    r.layer = curLayer; rails.push(r); if (cap) cap.rails.push(r);
     if (opts.visual === false) return r;
     const rad = opts.r || 0.045;
     const m = new THREE.Mesh(new THREE.CylinderGeometry(rad, rad, r.len3, 12), opts.mat || M.metal);
     m.position.copy(A).add(B).multiplyScalar(0.5); m.position.y -= rad;
     m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), B.clone().sub(A).normalize());
-    m.castShadow = true; scene.add(m);
+    m.castShadow = true; add(m);
     if (opts.posts) {
       const n = Math.max(2, Math.round(lenXZ / 3) + 1);
       for (let i = 0; i < n; i++) {
         const t = 0.04 + 0.92 * i / (n - 1), p = A.clone().lerp(B, t);
         const base = groundAt(p.x, p.z, p.y - 0.15).h, hh = p.y - base;
         const post = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, hh, 8), opts.mat || M.metal);
-        post.position.set(p.x, base + hh / 2, p.z); post.castShadow = true; scene.add(post);
+        post.position.set(p.x, base + hh / 2, p.z); post.castShadow = true; add(post);
       }
     }
     return r;
@@ -362,11 +371,11 @@ CF.World = (() => {
     const g = new THREE.LatheGeometry(pts, 64);
     const uv = g.attributes.uv, p = g.attributes.position;
     for (let i = 0; i < uv.count; i++) uv.setXY(i, p.getX(i) * 0.25, p.getZ(i) * 0.25);
-    const m = new THREE.Mesh(g, opts.mat || M.bowl); m.position.set(x, 0, z); m.receiveShadow = true; scene.add(m);
+    const m = new THREE.Mesh(g, opts.mat || M.bowl); m.position.set(x, 0, z); m.receiveShadow = true; add(m);
     // Pool-Kacheln am Rand
     const tile = new THREE.Mesh(new THREE.CylinderGeometry(R + 0.02, R + 0.02, 0.35, 64, 1, true),
       new THREE.MeshStandardMaterial({ map: tiles(opts.tile || '#2f8fc4'), roughness: 0.4, side: THREE.DoubleSide }));
-    tile.position.set(x, -0.2, z); scene.add(tile);
+    tile.position.set(x, -0.2, z); add(tile);
     // Coping als Rail-Ring
     const segs = 28;
     for (let i = 0; i < segs; i++) {
@@ -385,12 +394,12 @@ CF.World = (() => {
     for (let i = 0; i < steps; i++) {
       const h = hTop - i * dh;
       const m = new THREE.Mesh(new THREE.BoxGeometry(x1 - x0, h, Math.abs(dz)), M.side);
-      m.position.set((x0 + x1) / 2, h / 2, zTop + dz * (i + 0.5)); m.castShadow = m.receiveShadow = true; scene.add(m);
+      m.position.set((x0 + x1) / 2, h / 2, zTop + dz * (i + 0.5)); m.castShadow = m.receiveShadow = true; add(m);
     }
   }
   function decal(tex, w, h, pos, rotY, rotX = 0) {
     const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshStandardMaterial({ map: tex, transparent: true, roughness: 0.8, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 }));
-    m.position.set(...pos); m.rotation.set(rotX, rotY, 0, 'YXZ'); scene.add(m); return m;
+    m.position.set(...pos); m.rotation.set(rotX, rotY, 0, 'YXZ'); add(m); return m;
   }
   function textSign(text, sub, color) {
     return canvasTex(1024, 256, (g, w, h) => {
@@ -414,6 +423,9 @@ CF.World = (() => {
     const fg = new THREE.ShapeGeometry(shape, 48);
     const uv = fg.attributes.uv, p = fg.attributes.position; for (let i = 0; i < uv.count; i++) uv.setXY(i, p.getX(i) * 0.25, p.getY(i) * 0.25);
     const floor = new THREE.Mesh(fg, M.ground); floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
+    const fg2 = new THREE.PlaneGeometry(240, 200, 24, 20); const uv2 = fg2.attributes.uv, p2 = fg2.attributes.position; for (let i = 0; i < uv2.count; i++) uv2.setXY(i, p2.getX(i) * 0.25, p2.getY(i) * 0.25);
+    const flat = new THREE.Mesh(fg2, M.ground); flat.rotation.x = -Math.PI / 2; flat.receiveShadow = true; flat.visible = false; scene.add(flat);
+    floors.park = floor; floors.flat = flat;
     // Bodenmarkierungen
     const lineMat = new THREE.MeshBasicMaterial({ color: 0xf2e6c2, transparent: true, opacity: 0.55, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -1 });
     for (const [x, z, w, d] of [[-30, -10, 160, 0.3], [40, 10, 0.3, 120], [-70, 75, 80, 0.3]]) {
@@ -585,12 +597,127 @@ CF.World = (() => {
     );
   }
 
+  const floors = {};
   function build(sc, renderer) {
     scene = sc;
+    groups.park = new THREE.Group(); groups.custom = new THREE.Group(); scene.add(groups.park); scene.add(groups.custom);
     makeMaterials(renderer);
-    buildPark();
-    environment();
+    curLayer = 'park'; buildPark();
+    curLayer = 'env'; environment();
+    curLayer = 'park';
+    refresh();
   }
 
-  return { build, groundAt, blocked, rails, spawns, surfaces, bowls, M, lamps, nightMats, collider, addBox: (...a) => box(...a), rail: (...a) => rail(...a), photo };
+  /* ================= Map-Editor: Objekt-Katalog ================= */
+  // Param: [min, max, Schritt, Standard, Bezeichnung]
+  const PIECES = {
+    kicker:   { name: 'Kicker', cat: 'Rampen', params: { w: [1, 8, 0.5, 3, 'Breite'], l: [1.5, 6, 0.5, 3, 'Länge'], h: [0.3, 2.5, 0.1, 1, 'Höhe'] },
+      build(p, H) { H.ramp(0, 0, p.w, p.l, '+z', Prof.linear(p.h / p.l)); } },
+    quarter:  { name: 'Quarterpipe', cat: 'Rampen', params: { w: [2, 24, 1, 8, 'Breite'], h: [1, 7, 0.25, 2.5, 'Höhe'], deck: [1, 4, 0.5, 2, 'Deck'] },
+      build(p, H) { const R = p.h / 0.985, L = Math.sqrt(R * R - (R - p.h) * (R - p.h)), T = L + p.deck;
+        H.ramp(0, -T / 2 + L / 2, p.w, L, '+z', Prof.circ(R)); H.box(0, -T / 2 + L + p.deck / 2, p.w, p.deck, p.h);
+        H.rail([-p.w / 2 + 0.2, p.h + 0.03, -T / 2 + L], [p.w / 2 - 0.2, p.h + 0.03, -T / 2 + L], { r: 0.05, name: 'Coping' }); } },
+    bank:     { name: 'Bank', cat: 'Rampen', params: { w: [2, 20, 1, 6, 'Breite'], l: [2, 10, 0.5, 5, 'Länge'], h: [0.5, 3, 0.1, 1.5, 'Höhe'], deck: [0, 4, 0.5, 1.5, 'Deck'] },
+      build(p, H) { const T = p.l + p.deck; H.ramp(0, -T / 2 + p.l / 2, p.w, p.l, '+z', Prof.linear(p.h / p.l)); if (p.deck > 0) H.box(0, -T / 2 + p.l + p.deck / 2, p.w, p.deck, p.h); } },
+    halfpipe: { name: 'Halfpipe', cat: 'Rampen', params: { w: [4, 24, 1, 10, 'Breite'], h: [1.2, 5, 0.25, 3, 'Höhe'], flat: [2, 14, 1, 6, 'Flat'], deck: [1, 3, 0.5, 2, 'Deck'] },
+      build(p, H) { const R = p.h / 0.985, L = Math.sqrt(R * R - (R - p.h) * (R - p.h)), f = p.flat / 2;
+        for (const sg of [-1, 1]) {
+          H.ramp(0, sg * (f + L / 2), p.w, L, sg > 0 ? '+z' : '-z', Prof.circ(R)); H.box(0, sg * (f + L + p.deck / 2), p.w, p.deck, p.h);
+          H.rail([-p.w / 2 + 0.2, p.h + 0.03, sg * (f + L)], [p.w / 2 - 0.2, p.h + 0.03, sg * (f + L)], { r: 0.05, name: 'Coping' });
+        } } },
+    spine:    { name: 'Spine', cat: 'Rampen', params: { w: [2, 16, 1, 6, 'Breite'], h: [0.6, 3, 0.1, 1.5, 'Höhe'], l: [1.5, 5, 0.5, 3, 'Länge'] },
+      build(p, H) { H.ramp(0, -p.l / 2, p.w, p.l, '+z', Prof.circ(p.l * 1.4)); H.ramp(0, p.l / 2, p.w, p.l, '-z', Prof.circ(p.l * 1.4));
+        const hh = Prof.circ(p.l * 1.4).f(p.l)[0]; H.rail([-p.w / 2 + 0.2, hh + 0.03, 0], [p.w / 2 - 0.2, hh + 0.03, 0], { r: 0.05, name: 'Spine' }); } },
+    funbox:   { name: 'Funbox', cat: 'Obstacles', params: { w: [2, 10, 0.5, 4, 'Breite'], top: [1, 8, 0.5, 3, 'Plateau'], h: [0.3, 1.5, 0.1, 0.7, 'Höhe'], r: [1.5, 4, 0.5, 2.5, 'Rampenlänge'] },
+      build(p, H) { H.box(0, 0, p.w, p.top, p.h); H.ramp(0, -p.top / 2 - p.r / 2, p.w, p.r, '+z', Prof.linear(p.h / p.r)); H.ramp(0, p.top / 2 + p.r / 2, p.w, p.r, '-z', Prof.linear(p.h / p.r));
+        for (const sx of [-1, 1]) H.rail([sx * p.w / 2, p.h + 0.02, -p.top / 2 + 0.2], [sx * p.w / 2, p.h + 0.02, p.top / 2 - 0.2], { r: 0.035, metal: false, mat: M.metalDark, name: 'Funbox' }); } },
+    pyramid:  { name: 'Pyramide', cat: 'Obstacles', params: { top: [1, 6, 0.5, 2.5, 'Plateau'], h: [0.4, 2, 0.1, 0.9, 'Höhe'], r: [1.5, 4, 0.5, 2.5, 'Rampenlänge'] },
+      build(p, H) { H.box(0, 0, p.top, p.top, p.h); const o = p.top / 2 + p.r / 2, m = Prof.linear(p.h / p.r);
+        H.ramp(0, -o, p.top, p.r, '+z', m); H.ramp(0, o, p.top, p.r, '-z', m); H.ramp(-o, 0, p.r, p.top, '+x', m); H.ramp(o, 0, p.r, p.top, '-x', m); } },
+    box:      { name: 'Box / Manual-Pad', cat: 'Obstacles', params: { w: [1, 10, 0.5, 3, 'Breite'], l: [1, 12, 0.5, 5, 'Länge'], h: [0.15, 1.5, 0.05, 0.4, 'Höhe'] },
+      build(p, H) { H.box(0, 0, p.w, p.l, p.h, { sideMat: M.side });
+        const y = p.h + 0.02, W = p.w / 2, L = p.l / 2;
+        for (const [a, b] of [[[-W, y, -L + 0.2], [-W, y, L - 0.2]], [[W, y, -L + 0.2], [W, y, L - 0.2]], [[-W + 0.2, y, -L], [W - 0.2, y, -L]], [[-W + 0.2, y, L], [W - 0.2, y, L]]])
+          H.rail(a, b, { r: 0.035, name: 'Box' }); } },
+    ledge:    { name: 'Ledge', cat: 'Obstacles', params: { l: [2, 20, 0.5, 8, 'Länge'], h: [0.3, 1.2, 0.05, 0.5, 'Höhe'], w: [0.4, 1.5, 0.1, 0.6, 'Tiefe'] },
+      build(p, H) { H.box(0, 0, p.w, p.l, p.h, { sideMat: M.paintYellow });
+        for (const sx of [-1, 1]) H.rail([sx * p.w / 2, p.h + 0.02, -p.l / 2 + 0.2], [sx * p.w / 2, p.h + 0.02, p.l / 2 - 0.2], { r: 0.035, metal: false, mat: M.metalDark, name: 'Ledge' }); } },
+    rail:     { name: 'Rail', cat: 'Obstacles', params: { l: [2, 24, 0.5, 6, 'Länge'], h: [0.2, 1.2, 0.05, 0.45, 'Höhe'] },
+      build(p, H) { H.rail([0, p.h, -p.l / 2], [0, p.h, p.l / 2], { posts: true, name: 'Rail' }); } },
+    stairs:   { name: 'Treppe + Handrail', cat: 'Obstacles', params: { w: [2, 10, 0.5, 5, 'Breite'], h: [0.6, 3, 0.1, 1.4, 'Höhe'], top: [2, 6, 0.5, 3, 'Plattform'] },
+      build(p, H) { const L = p.h / 0.27, T = p.top + L, z0 = -T / 2;
+        H.box(0, z0 + p.top / 2, p.w, p.top, p.h);
+        H.ramp(0, z0 + p.top + L / 2, p.w, L, '-z', Prof.linear(p.h / L), { invisible: true });
+        const n = Math.max(3, Math.round(p.h / 0.17));
+        for (let i = 0; i < n; i++) { const hh = p.h - i * p.h / n; H.visBox(0, z0 + p.top + (i + 0.5) * L / n, p.w, L / n, hh, M.side); }
+        H.rail([0, p.h + 0.8, z0 + p.top + 0.15], [0, 0.8, z0 + T], { posts: true, id: 'handrail', name: 'Handrail' });
+        H.rail([-p.w / 2, p.h + 0.02, z0 + 0.2], [-p.w / 2, p.h + 0.02, z0 + p.top - 0.1], { r: 0.035, metal: false, mat: M.metalDark, name: 'Plattform' }); } },
+    spawn:    { name: 'Startpunkt', cat: 'Spezial', params: {}, single: true,
+      build(p, H) { H.marker(); } },
+  };
+  const PROP_TYPES = { barrier: 'Betonbarriere', bench: 'Holzbank', seating: 'Sitzbank', trash: 'Mülleimer', planter: 'Pflanzkasten', hydrant: 'Hydrant' };
+  for (const k in PROP_TYPES) PIECES['prop_' + k] = { name: PROP_TYPES[k], cat: 'Props', params: {}, prop: k,
+    build(p, H) { H.prop(k); } };
+
+  const ghostMat = new THREE.MeshBasicMaterial({ color: 0x6bff8f, transparent: true, opacity: 0.38, depthWrite: false });
+  function buildPiece(def, layer = 'custom') {
+    const P = PIECES[def.t]; if (!P) return null;
+    const p = {}; for (const k in P.params) p[k] = def.p && def.p[k] !== undefined ? +def.p[k] : P.params[k][3];
+    const c = { def, group: new THREE.Group(), surfaces: [], rails: [] };
+    c.group.userData.piece = c;
+    const rot = ((def.r | 0) % 4 + 4) % 4, X = def.x, Z = def.z;
+    const R = (lx, lz) => { let x = lx, z = lz; for (let i = 0; i < rot; i++) { const t = x; x = z; z = -t; } return [X + x, Z + z]; };
+    const DIRS = ['+z', '+x', '-z', '-x'], rd = d => DIRS[(DIRS.indexOf(d) + rot) % 4];
+    const rect = (cx, cz, w, l) => { const [x, z] = R(cx, cz), odd = rot % 2, W = odd ? l : w, L = odd ? w : l; return [x - W / 2, x + W / 2, z - L / 2, z + L / 2]; };
+    const H = {
+      box: (cx, cz, w, l, h, o) => { const [x0, x1, z0, z1] = rect(cx, cz, w, l); return box(x0, x1, z0, z1, h, o); },
+      ramp: (cx, cz, w, l, d, prof, o) => { const [x0, x1, z0, z1] = rect(cx, cz, w, l); return ramp(x0, x1, z0, z1, rd(d), prof, o); },
+      rail: (a, b, o) => { const [ax, az] = R(a[0], a[2]), [bx, bz] = R(b[0], b[2]); return rail([ax, a[1], az], [bx, b[1], bz], o); },
+      visBox: (cx, cz, w, l, h, mat) => { const [x0, x1, z0, z1] = rect(cx, cz, w, l); const m = new THREE.Mesh(new THREE.BoxGeometry(x1 - x0, h, z1 - z0), mat); m.position.set((x0 + x1) / 2, h / 2, (z0 + z1) / 2); m.castShadow = m.receiveShadow = true; add(m); },
+      prop: k => { if (CF.Props) CF.Props.placeProp(k, X, Z, rot * Math.PI / 2, { grind: ['barrier', 'bench', 'seating'].includes(k), metal: k === 'seating' }); },
+      marker: () => {
+        const ring = new THREE.Mesh(new THREE.RingGeometry(0.7, 0.95, 32), new THREE.MeshBasicMaterial({ color: 0xff6b35, side: THREE.DoubleSide }));
+        ring.rotation.x = -Math.PI / 2; ring.position.set(X, 0.03, Z); add(ring);
+        const arrow = new THREE.Mesh(new THREE.ConeGeometry(0.35, 0.9, 16), new THREE.MeshBasicMaterial({ color: 0xff6b35 }));
+        const [ax, az] = R(0, 1.4); arrow.position.set(ax, 0.3, az); arrow.rotation.set(Math.PI / 2, 0, 0); arrow.rotation.order = 'YXZ'; arrow.rotation.y = rot * Math.PI / 2; add(arrow);
+        c.isMarker = true;
+      },
+    };
+    const prevCap = cap, prevLayer = curLayer; cap = c; curLayer = layer;
+    try { P.build(p, H); } finally { cap = prevCap; curLayer = prevLayer; }
+    if (layer === 'ghost') { c.group.traverse(o => { if (o.isMesh) { o.material = ghostMat; o.castShadow = false; } }); scene.add(c.group); }
+    else groups.custom.add(c.group);
+    refresh();
+    return c;
+  }
+  function removePiece(c) {
+    if (!c) return;
+    for (const s of c.surfaces) { const i = surfaces.indexOf(s); if (i >= 0) surfaces.splice(i, 1); }
+    for (const r of c.rails) { const i = rails.indexOf(r); if (i >= 0) rails.splice(i, 1); }
+    c.group.traverse(o => { if (o.isMesh && o.geometry && !o.userData.shared) o.geometry.dispose(); });
+    c.group.removeFromParent();
+    refresh();
+  }
+  let customPieces = [], customSpawn = null;
+  function setPark(on) {
+    parkOn = on; groups.park.visible = on;
+    if (floors.park) { floors.park.visible = on; floors.flat.visible = !on; }
+    refresh();
+  }
+  function clearCustom() { for (const c of customPieces) removePiece(c); customPieces = []; customSpawn = null; }
+  function loadMap(map) {
+    clearCustom();
+    setPark(!map || map.base !== 'leer');
+    if (!map) return;
+    for (const d of map.pieces || []) { const c = buildPiece(d); if (c) customPieces.push(c); }
+    const sp = (map.pieces || []).find(d => d.t === 'spawn');
+    customSpawn = sp ? { id: 'custom', name: 'Start', x: sp.x, z: sp.z, yaw: (sp.r | 0) * Math.PI / 2 } : { id: 'custom', name: 'Start', x: 0, z: 0, yaw: 0 };
+  }
+  function defaultSpawn() { return customSpawn || spawns[0]; }
+
+  return { build, groundAt, blocked, rails: activeRails, spawns, surfaces, bowls, M, lamps, nightMats, collider, addBox: (...a) => box(...a), rail: (...a) => rail(...a), photo,
+    PIECES, buildPiece, removePiece, setPark, loadMap, clearCustom, defaultSpawn, refresh, add: o => add(o),
+    withLayer(layer, fn) { const p = curLayer; curLayer = layer; try { return fn(); } finally { curLayer = p; refresh(); } },
+    get parkOn() { return parkOn; }, get customPieces() { return customPieces; }, set customPieces(v) { customPieces = v; },
+    get customGroup() { return groups.custom; } };
 })();

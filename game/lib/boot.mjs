@@ -15,7 +15,7 @@ import { mergeBufferGeometries } from './jsm/utils/BufferGeometryUtils.js';
 window.THREE = Object.assign({}, THREE_NS);
 window.THREEX = { GLTFLoader, EffectComposer, RenderPass, ShaderPass, UnrealBloomPass, SSAOPass, Sky, FXAAShader, GammaCorrectionShader, ACESFilmicToneMappingShader, mergeBufferGeometries };
 
-const files = ['audio', 'input', 'world', 'env', 'skater', 'player', 'npc', 'progress', 'replay', 'photo', 'admin', 'props', 'game'];
+const files = ['audio', 'input', 'world', 'env', 'skater', 'player', 'npc', 'progress', 'replay', 'photo', 'admin', 'props', 'editor', 'game'];
 for (const f of files) {
   await new Promise((resolve, reject) => {
     const s = document.createElement('script');

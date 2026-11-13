@@ -37,7 +37,9 @@ CF.Props = (() => {
   /* Platziert ein Prop. rotY in Vielfachen von 90°. opts.grind: obere Längskante grindbar */
   function place(scene, key, x, z, rotY = 0, opts = {}) {
     const p = protos[key]; if (!p) return;
-    const o = p.group.clone(); o.position.set(x, W.groundAt(x, z, 0.1).h, z); o.rotation.y = rotY; scene.add(o);
+    const o = p.group.clone(); o.position.set(x, W.groundAt(x, z, 0.1).h, z); o.rotation.y = rotY;
+    o.traverse(m => { if (m.isMesh) m.userData.shared = true; });
+    W.add(o);
     const sw = Math.abs(Math.cos(rotY)) > 0.5 ? p.size.x : p.size.z, sd = Math.abs(Math.cos(rotY)) > 0.5 ? p.size.z : p.size.x;
     const h = opts.h !== undefined ? opts.h : p.size.y;
     if (opts.solid !== false) W.collider(x, z, sw * (opts.shrink || 0.9), sd * (opts.shrink || 0.9), h);
@@ -55,7 +57,7 @@ CF.Props = (() => {
       loader.load(`assets/models/${f}/${f}.gltf`, gl => { cache[f] = gl; res(); }, undefined, e => { console.warn('Modell fehlt', f, e); res(); });
     }))).then(() => {
       for (const k in MODELS) if (cache[MODELS[k].file]) prepare(k, cache[MODELS[k].file]);
-      layout(scene);
+      W.withLayer('park', () => layout(scene));
     });
   }
 
@@ -85,5 +87,5 @@ CF.Props = (() => {
     fenceLine(-116, -80, -116, -56);
   }
 
-  return { load };
+  return { load, placeProp: (k, x, z, rot, opts) => place(null, k, x, z, rot, opts || {}) };
 })();

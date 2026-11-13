@@ -307,7 +307,7 @@ CF.Player = (() => {
     P.y = g.h; P.gx = g.gx; P.gz = g.gz; P.s = 0; P.state = 'ground';
   }
   function respawnSafe() {
-    const s = P.lastSafe || W.spawns[0];
+    const s = P.lastSafe || W.defaultSpawn();
     spawn({ x: s.x, z: s.z, yaw: s.yaw, y: s.y });
   }
 

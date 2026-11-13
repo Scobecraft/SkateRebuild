@@ -22,6 +22,8 @@ Windows SmartScreen kann beim ersten Start warnen, weil die EXE nicht signiert i
 - **17 Challenges**, Highscore-Session (3 Minuten) und Free Skate
 - **Tag-Nacht-Zyklus**: physikalischer Himmel mit Sonne, Mond und Sternen. Nachts gehen Flutlichter, Laternen und die Fenster der Skyline an.
 - **Wetter**: klar, bewölkt, Regen (nasser, spiegelnder Boden), Gewitter mit Blitz und Donner, Nebel. Das Wetter wechselt automatisch oder lässt sich festlegen.
+- **Map-Editor**: eigene Skateparks bauen – auf leerer Fläche oder mit dem Megapark als Basis
+- **Realistischer Skater** mit echtem 3D-Kopfscan, anatomischem Körper, Händen mit Fingern, Hoodie, Jeans und Sneakern
 - **NPC-Skater**, die durch den Park fahren, Tricks machen, die Halfpipe fahren und in den Bowls carven
 - **Replay der letzten 2 Minuten** mit Zeitleiste, Zeitlupe, Einzelbild und frei fliegender Kamera
 - **Fotomodus** mit Freecam, FOV, Belichtung, Filtern, Vignette, Uhrzeit- und Wetterregler. Fotos landen unter `Bilder\Concrete Flow`.
@@ -43,6 +45,26 @@ Windows SmartScreen kann beim ersten Start warnen, weil die EXE nicht signiert i
 | Replay / Fotomodus | Steuerkreuz ↑ / ↓ | V / F |
 | Reset · Pause · Kamera | View · Menu · R3 | R · Esc · C |
 | Musik · Challenges | Ⓨ · Ⓧ | M · Tab |
+
+## Map-Editor
+
+Hauptmenü → **🛠 Map-Editor** → neue Map (leere Fläche oder Megapark-Basis) oder bestehende Map bearbeiten.
+
+- **Objekte:** Kicker, Quarterpipe, Bank, Halfpipe, Spine, Funbox, Pyramide, Box/Manual-Pad, Ledge, Rail, Treppe mit Handrail, Betonbarriere, Bänke, Mülleimer, Pflanzkasten, Hydrant und Startpunkt. Höhe, Länge und Breite sind über Regler einstellbar.
+- **Bearbeiten:** Platzieren auf einem 0,5-m-Raster, Drehen in 90°-Schritten, Verschieben, Duplizieren, Löschen, Undo/Redo.
+- **Testfahrt** direkt aus dem Editor. Esc bringt dich zurück.
+- **Speichern** im Spiel. **Export/Import** als `.cfmap.json`. Exportierte Maps landen unter `Dokumente\Concrete Flow\Maps` und lassen sich mit Freunden teilen.
+- Eigene Maps spielst du über **Hauptmenü → Eigene Maps spielen**, als Free Skate oder Highscore-Session.
+
+| Aktion | Maus / Tastatur | Controller |
+|---|---|---|
+| Objekt setzen / auswählen | Linksklick | Ⓐ |
+| Kamera drehen / schieben / zoomen | Rechts ziehen / Shift+Rechts oder Mitte ziehen / Mausrad, WASD, Q/E | R-Stick / L-Stick / LT, RT |
+| Drehen · Verschieben · Löschen | R · G · Entf | Ⓧ · – · Ⓑ |
+| Objekt wählen | 1–9, Palette | LB / RB |
+| Werte ändern | Regler oder [ ] | Steuerkreuz |
+| Undo · Redo · Speichern · Duplizieren | Strg+Z · Strg+Y · Strg+S · Strg+D | – |
+| Testfahrt | T | Ⓨ |
 
 ## Für Admins: verstecktes Modmenü
 
@@ -84,6 +106,7 @@ game/js/progress.js  XP, Level, Streaks, Freischaltungen
 game/js/replay.js    Replay-Aufnahme + Freecam
 game/js/photo.js     Fotomodus
 game/js/admin.js     Verstecktes Modmenü
+game/js/editor.js    Map-Editor
 game/js/game.js      Spielablauf, HUD, Menüs, Post-Processing
 ```
 
@@ -92,4 +115,5 @@ game/js/game.js      Spielablauf, HUD, Menüs, Post-Processing
 - Code: MIT
 - [Three.js](https://threejs.org) r149: MIT-Lizenz (`game/lib/THREE_LICENSE`)
 - Texturen und 3D-Modelle: [Poly Haven](https://polyhaven.com), Lizenz **CC0** (gemeinfrei). Verwendet wurden: concrete_floor_02, rough_concrete, wood_planks, red_bricks_04, asphalt_track, sparse_grass, cotton_jersey, denim_fabric, leather_white, bark_brown_02, rectangular_facade_tiles_02, concrete_road_barrier, painted_wooden_bench, modular_street_seating, metal_trash_can, fire_hydrant, planter_box_01 und modular_chainlink_fence.
+- Kopf des Skaters: „Lee Perry-Smith Head“ von Infinite Realities (Lee Perry-Smith), Lizenz [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). Bezogen über das Three.js-Beispielarchiv, zugeschnitten (Schultern entfernt) und mit Cap und Sonnenbrille kombiniert.
 - Musik und Sounds: zur Laufzeit synthetisiert, eigene Kompositionen

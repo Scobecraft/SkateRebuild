@@ -151,3 +151,35 @@ body.photo-mode #hud { display: none !important; }
 .profile { display: flex; gap: 18px; align-items: center; margin-bottom: 8px; line-height: 1.5; }
 .lvbig { font-family: var(--display); font-size: 44px; color: var(--accent2); font-style: italic; }
 .goal-menu small { opacity: .6; }
+
+/* Map-Editor */
+#editor { position: fixed; inset: 0; pointer-events: none; display: none; z-index: 13; }
+#editor.show { display: block; }
+#editor > * { pointer-events: auto; }
+.ed-top { position: absolute; top: 0; left: 0; right: 0; display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: var(--panel); backdrop-filter: blur(8px); }
+#ed-name { font: 800 18px var(--font); color: #fff; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.2); border-radius: 8px; padding: 6px 10px; width: 240px; }
+#ed-info { font-size: 13px; opacity: .7; }
+.ed-spacer { flex: 1; }
+.ed-top button, .ed-btns button { font: 700 14px var(--font); color: #fff; background: rgba(255,255,255,.1); border: 0; border-radius: 8px; padding: 8px 12px; cursor: pointer; }
+.ed-top button:hover, .ed-btns button:hover { background: var(--accent); }
+#ed-test { background: #2a9d4b; }
+#ed-palette { position: absolute; top: 60px; left: 10px; bottom: 70px; width: 210px; overflow-y: auto; background: var(--panel); border-radius: 12px; padding: 8px; }
+.ed-cat { font-size: 11px; font-weight: 900; letter-spacing: 2px; opacity: .55; margin: 10px 4px 4px; text-transform: uppercase; }
+.ed-tool { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; font: 700 14px var(--font); color: #fff; background: transparent; border: 0; border-radius: 8px; padding: 7px 8px; cursor: pointer; }
+.ed-tool:hover { background: rgba(255,255,255,.08); }
+.ed-tool.on { background: var(--accent); }
+.ed-tool kbd { font: 700 11px monospace; background: rgba(0,0,0,.35); border-radius: 4px; padding: 1px 5px; }
+#ed-props { position: absolute; top: 60px; right: 10px; width: 270px; background: var(--panel); border-radius: 12px; padding: 12px 14px; }
+.ed-ptitle { font-family: var(--display); font-style: italic; font-size: 22px; margin-bottom: 8px; }
+.ed-param { display: grid; grid-template-columns: 90px 1fr 56px; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; padding: 4px 6px; border-radius: 6px; }
+.ed-param.sel { background: rgba(255,107,53,.25); }
+.ed-param input { width: 100%; accent-color: var(--accent); }
+.ed-param b { text-align: right; font-size: 12px; }
+.ed-ph { font-size: 13px; opacity: .7; margin: 8px 0; line-height: 1.5; }
+.ed-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 10px; }
+.ed-btns .danger { background: rgba(255,77,94,.35); }
+#ed-pos { position: absolute; bottom: 72px; right: 14px; font: 700 13px monospace; background: rgba(0,0,0,.5); padding: 4px 8px; border-radius: 6px; pointer-events: none; }
+.ed-help { position: absolute; left: 230px; right: 290px; bottom: 10px; font-size: 12px; line-height: 1.5; background: var(--panel); padding: 8px 12px; border-radius: 10px; opacity: .85; pointer-events: none; }
+#ed-cross { position: absolute; left: 50%; top: 50%; width: 22px; height: 22px; margin: -11px 0 0 -11px; border: 2px solid #fff; border-radius: 50%; display: none; pointer-events: none; box-shadow: 0 0 6px #000; }
+#ed-cross.show { display: block; }
+body.editing #hud { display: none !important; }
