@@ -148,9 +148,9 @@ CF.World = (() => {
   }
   function makeMaterials(renderer) {
     maxAniso = renderer.capabilities.getMaxAnisotropy();
-    M.ground = pbr('ground', 1, { color: 0xe8e6e2 });
-    M.ramp = pbr('ramp', 1, { color: 0xf2f0ea, normalScale: new THREE.Vector2(0.6, 0.6) });
-    M.side = pbr('ramp', 1, { color: 0xc9c6bf });
+    M.ground = pbr('ground', 1, { color: 0xa9a6a1 });
+    M.ramp = pbr('ramp', 1, { color: 0xc4c1ba, normalScale: new THREE.Vector2(0.7, 0.7) });
+    M.side = pbr('ramp', 1, { color: 0xa19e98 });
     M.dark = pbr('brick', 1.6, { color: 0xffffff });
     M.wood = pbr('wood', 1, { color: 0xfff4e6 });
     M.asphalt = pbr('asphalt', 1.2, { color: 0xd8d8d8 });
@@ -161,7 +161,7 @@ CF.World = (() => {
     M.metalDark = new THREE.MeshStandardMaterial({ color: 0x50565e, metalness: 0.9, roughness: 0.35 });
     M.bowl = pbr('ramp', 1, { color: 0xf2f0ea, side: THREE.DoubleSide, normalScale: new THREE.Vector2(0.6, 0.6) });
     M.grass = pbr('grass', 350, { color: 0xd8e8c8 });
-    macroVariation(M.ground, 0.03, 0.28); macroVariation(M.ramp, 0.06, 0.18); macroVariation(M.side, 0.06, 0.2);
+    macroVariation(M.ground, 0.03, 0.28, 1); macroVariation(M.ramp, 0.06, 0.18); macroVariation(M.side, 0.06, 0.2);
     macroVariation(M.bowl, 0.08, 0.18); macroVariation(M.grass, 0.012, 0.45); macroVariation(M.wood, 0.05, 0.2);
   }
 
@@ -230,13 +230,14 @@ CF.World = (() => {
   function collider(x, z, w, d, h) { const s = { x0: x - w / 2, x1: x + w / 2, z0: z - d / 2, z1: z + d / 2, axis: 'x', rev: false, prof: Prof.flat(h), len: w, invisible: true, layer: curLayer }; surfaces.push(s); if (cap) cap.surfaces.push(s); refresh(); }
 
   /* Makro-Variation gegen sichtbare Textur-Wiederholung + leichte Verschmutzung */
-  function macroVariation(mat, scale = 0.035, amount = 0.22) {
+  const wetU = { value: 0 };
+  function macroVariation(mat, scale = 0.035, amount = 0.22, puddles = 0) {
     mat.onBeforeCompile = sh => {
-      sh.uniforms.uMacroScale = { value: scale }; sh.uniforms.uMacroAmt = { value: amount };
+      sh.uniforms.uMacroScale = { value: scale }; sh.uniforms.uMacroAmt = { value: amount }; sh.uniforms.uWet = wetU; sh.uniforms.uPud = { value: puddles };
       sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vWPos;')
         .replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\nvWPos = (modelMatrix * vec4(transformed, 1.0)).xyz;');
       sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>
-        varying vec3 vWPos; uniform float uMacroScale, uMacroAmt;
+        varying vec3 vWPos; uniform float uMacroScale, uMacroAmt, uWet, uPud;
         float mh(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7)))*43758.5453); }
         float mn(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.-2.*f); return mix(mix(mh(i),mh(i+vec2(1,0)),f.x), mix(mh(i+vec2(0,1)),mh(i+vec2(1,1)),f.x), f.y); }
         float mfbm(vec2 p){ return mn(p)*.55 + mn(p*2.3+7.)*.3 + mn(p*5.1+3.)*.15; }`)
@@ -244,9 +245,12 @@ CF.World = (() => {
         float mv = mfbm(vWPos.xz * uMacroScale);
         float stain = smoothstep(.62, .8, mfbm(vWPos.xz * uMacroScale * 3.1 + 11.));
         diffuseColor.rgb *= (1.0 - uMacroAmt * .5) + uMacroAmt * mv;
-        diffuseColor.rgb *= 1.0 - stain * .18;`)
+        diffuseColor.rgb *= 1.0 - stain * .18;
+        float pud = uPud * uWet * smoothstep(.40, .33, mfbm(vWPos.xz * .09 + 3.7));
+        diffuseColor.rgb *= 1.0 - pud * .45;`)
         .replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>
-        roughnessFactor = clamp(roughnessFactor * (0.9 + 0.2 * mv), 0.0, 1.0);`);
+        roughnessFactor = clamp(roughnessFactor * (0.9 + 0.2 * mv), 0.0, 1.0);
+        roughnessFactor = mix(roughnessFactor, 0.03, pud);`);
     };
   }
 
@@ -314,6 +318,44 @@ CF.World = (() => {
     });
   }
 
+  /* Wachs- und Grindspuren auf Kanten (dunkle, glänzende Streifen) */
+  let waxTex = null, waxMat = null;
+  function waxMark(A, B) {
+    if (!waxTex) {
+      waxTex = canvasTex(64, 512, (g, w, h) => {
+        g.clearRect(0, 0, w, h);
+        for (let i = 0; i < 70; i++) {
+          const x = w / 2 + (Math.random() - 0.5) * w * 0.7, y0 = Math.random() * h, l = 40 + Math.random() * 220;
+          g.strokeStyle = `rgba(15,12,10,${0.15 + Math.random() * 0.35})`; g.lineWidth = 1 + Math.random() * 4;
+          g.beginPath(); g.moveTo(x, y0); g.lineTo(x + (Math.random() - 0.5) * 4, y0 + l); g.stroke();
+        }
+      });
+      waxMat = new THREE.MeshStandardMaterial({ map: waxTex, transparent: true, depthWrite: false, roughness: 0.25, metalness: 0, polygonOffset: true, polygonOffsetFactor: -3 });
+    }
+    const len = A.distanceTo(B), m = new THREE.Mesh(new THREE.PlaneGeometry(0.2, len), waxMat);
+    m.position.copy(A).add(B).multiplyScalar(0.5); m.position.y += 0.004;
+    m.rotation.set(-Math.PI / 2, 0, 0); m.rotateZ(-Math.atan2(B.x - A.x, B.z - A.z) + Math.PI);
+    waxMat.map.repeat.set(1, Math.max(1, len / 3)); m.receiveShadow = true; add(m);
+  }
+  /* Abrieb- und Bremsspuren auf dem Boden */
+  function skidMarks(n) {
+    const tex = canvasTex(256, 256, (g, w, h) => {
+      g.clearRect(0, 0, w, h);
+      for (let k = 0; k < 3; k++) {
+        g.strokeStyle = `rgba(20,18,16,${0.25 + Math.random() * 0.3})`; g.lineWidth = 3 + Math.random() * 5; g.lineCap = 'round';
+        g.beginPath(); const y = 60 + Math.random() * 140; g.moveTo(20, y);
+        g.bezierCurveTo(90, y + (Math.random() - 0.5) * 80, 160, y + (Math.random() - 0.5) * 80, 236, y + (Math.random() - 0.5) * 60); g.stroke();
+      }
+    });
+    const mat = new THREE.MeshStandardMaterial({ map: tex, transparent: true, depthWrite: false, roughness: 0.6, polygonOffset: true, polygonOffsetFactor: -2 });
+    for (let i = 0; i < n; i++) {
+      const x = (Math.random() - 0.5) * 220, z = (Math.random() - 0.5) * 180;
+      const g = groundAt(x, z, 0.05); if (g.h !== 0 || g.surf) continue;
+      const sz = 2 + Math.random() * 4, m = new THREE.Mesh(new THREE.PlaneGeometry(sz, sz), mat);
+      m.rotation.set(-Math.PI / 2, 0, Math.random() * Math.PI * 2); m.position.set(x, 0.006, z); m.receiveShadow = true; add(m);
+    }
+  }
+
   /* ---------------- Bau-Helfer ---------------- */
   function addSurf(o) {
     const s = Object.assign({ rev: false, top: M.ramp, sideMat: M.side }, o);
@@ -345,6 +387,7 @@ CF.World = (() => {
     const dx = B.x - A.x, dz = B.z - A.z, lenXZ = Math.hypot(dx, dz);
     const r = { a: A, b: B, dx, dz, lenXZ, ux: dx / lenXZ, uz: dz / lenXZ, len3: A.distanceTo(B), metal: opts.metal !== false, id: opts.id || null, name: opts.name || null };
     r.layer = curLayer; rails.push(r); if (cap) cap.rails.push(r);
+    if (opts.mark !== false && Math.abs(A.y - B.y) < 0.05 && !opts.posts && lenXZ > 0.8) waxMark(A, B);
     if (opts.visual === false) return r;
     const rad = opts.r || 0.045;
     const m = new THREE.Mesh(new THREE.CylinderGeometry(rad, rad, r.len3, 12), opts.mat || M.metal);
@@ -602,7 +645,7 @@ CF.World = (() => {
     scene = sc;
     groups.park = new THREE.Group(); groups.custom = new THREE.Group(); scene.add(groups.park); scene.add(groups.custom);
     makeMaterials(renderer);
-    curLayer = 'park'; buildPark();
+    curLayer = 'park'; buildPark(); skidMarks(70);
     curLayer = 'env'; environment();
     curLayer = 'park';
     refresh();
@@ -716,7 +759,7 @@ CF.World = (() => {
   function defaultSpawn() { return customSpawn || spawns[0]; }
 
   return { build, groundAt, blocked, rails: activeRails, spawns, surfaces, bowls, M, lamps, nightMats, collider, addBox: (...a) => box(...a), rail: (...a) => rail(...a), photo,
-    PIECES, buildPiece, removePiece, setPark, loadMap, clearCustom, defaultSpawn, refresh, add: o => add(o),
+    wetU, PIECES, buildPiece, removePiece, setPark, loadMap, clearCustom, defaultSpawn, refresh, add: o => add(o),
     withLayer(layer, fn) { const p = curLayer; curLayer = layer; try { return fn(); } finally { curLayer = p; refresh(); } },
     get parkOn() { return parkOn; }, get customPieces() { return customPieces; }, set customPieces(v) { customPieces = v; },
     get customGroup() { return groups.custom; } };

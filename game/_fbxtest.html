@@ -1,0 +1,22 @@
+<!doctype html><html><body style="margin:0"><script type="importmap">{"imports":{"three":"/lib/three.module.js"}}</script>
+<script type="module">
+import * as THREE from 'three'; import { FBXLoader } from '/lib/jsm/loaders/FBXLoader.js';
+const name = new URLSearchParams(location.search).get('a') || 'Male_Adult_17';
+const r = new THREE.WebGLRenderer({antialias:true, preserveDrawingBuffer:true}); r.setSize(800,500); r.outputEncoding = THREE.sRGBEncoding; r.setClearColor(0x777777); document.body.appendChild(r.domElement);
+const sc = new THREE.Scene(); sc.add(new THREE.HemisphereLight(0xffffff,0x555555,0.9)); const dl = new THREE.DirectionalLight(0xffffff,1.2); dl.position.set(1,2,3); sc.add(dl);
+const mgr = new THREE.LoadingManager();
+mgr.setURLModifier(u => { const f = u.split(/[\\/]/).pop(); return f.toLowerCase().endsWith('.tga') ? `/assets/people/${name}/` + f.replace(/\.tga$/i, '.jpg') : u; });
+mgr.addHandler(/\.tga$/i, new THREE.TextureLoader(mgr));
+new FBXLoader(mgr).load(`/assets/people/${name}/${name}.fbx`, obj => {
+  const bones = []; const mats = []; obj.traverse(o => { if (o.isBone) bones.push(o.name); if (o.isMesh) mats.push(o.name + ':' + [].concat(o.material).map(m => m.name + '/' + m.type + '/' + (m.map && m.map.name)).join(',')); });
+  obj.traverse(o => { if (!o.isMesh) return; o.material = [].concat(o.material).map(m => { const base = m.map && m.map.image && m.map.image.src ? m.map.image.src.split('/').pop().replace('_color.jpg', '') : null; const tl = new THREE.TextureLoader(); const p = `/assets/people/${name}/`;
+    const nm = new THREE.MeshStandardMaterial({ map: m.map, roughness: 1, metalness: 0 }); if (m.map) m.map.encoding = THREE.sRGBEncoding;
+    const key = m.name; nm.normalMap = tl.load(p + key + '_normal.jpg'); nm.roughnessMap = tl.load(p + key + '_rough.jpg'); nm.name = key; return nm; }); if (o.material.length === 1) o.material = o.material[0]; });
+  sc.add(obj); obj.updateMatrixWorld(true); const bb = new THREE.Box3().setFromObject(obj);
+  console.log('BB', JSON.stringify(bb.min), JSON.stringify(bb.max), 'scale', JSON.stringify(obj.scale));
+  console.log('BONES', bones.join(','));
+  console.log('MATS', mats.join(' | '));
+  const c = bb.getCenter(new THREE.Vector3()), h = bb.max.y - bb.min.y;
+  setTimeout(() => { r.setScissorTest(true); [[0, 0], [400, Math.PI / 2]].forEach(([x, a]) => { const cam = new THREE.PerspectiveCamera(30, 0.8, h * 0.01, h * 20); cam.position.set(c.x + Math.sin(a) * h * 2.2, c.y + h * 0.1, c.z + Math.cos(a) * h * 2.2); cam.lookAt(c.x, c.y + h * 0.1, c.z); r.setViewport(x, 0, 400, 500); r.setScissor(x, 0, 400, 500); r.render(sc, cam); }); document.title = 'done'; }, 3000);
+}, undefined, e => console.log('ERR', e && e.message));
+</script></body></html>

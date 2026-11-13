@@ -183,13 +183,13 @@ CF.Env = (() => {
     sun.position.copy(sun.target.position).add(tmpV.copy(lightDir).multiplyScalar(160));
     if (sunUp) {
       tmpC.setRGB(1, 0.55 + 0.42 * smooth(0, 0.4, e), 0.3 + 0.6 * smooth(0, 0.45, e));
-      sun.color.copy(tmpC); sun.intensity = 2.5 * smooth(-0.03, 0.12, e) * (1 - over * 0.78);
+      sun.color.copy(tmpC); sun.intensity = 2.1 * smooth(-0.03, 0.12, e) * (1 - over * 0.8);
     } else { sun.color.setRGB(0.55, 0.65, 1.0); sun.intensity = 0.35 * (1 - over * 0.7); }
     sun.castShadow = sun.intensity > 0.08;
-    hemi.intensity = (0.12 + 0.38 * day) * (1 + over * 0.4) + fl * 2.5;
+    hemi.intensity = (0.1 + 0.25 * day) * (1 + over * 0.3) + fl * 2.5;
     hemi.color.setRGB(0.6 + 0.2 * day, 0.68 + 0.2 * day, 0.85 + 0.1 * day);
     hemi.groundColor.setRGB(0.25 * (0.3 + day), 0.22 * (0.3 + day), 0.2 * (0.3 + day));
-    renderer.toneMappingExposure = 0.68 + night * 0.22 + over * 0.12;
+    renderer.toneMappingExposure = 0.52 + night * 0.2 + over * 0.06;
 
     // Nebel-Farbe passend zum Horizont
     const fogC = scene.fog.color;
@@ -208,6 +208,7 @@ CF.Env = (() => {
 
     // Nässe: Oberflächen werden dunkler und spiegeln
     const W = CF.World.M, wet = st.wet;
+    CF.World.wetU.value = wet;
     for (const m of [W.ground, W.ramp, W.side, W.wood, W.asphalt, W.bowl, W.paintRed, W.paintBlue, W.paintYellow]) {
       if (!m) continue;
       if (m.userData.base === undefined) m.userData.base = m.color.clone();

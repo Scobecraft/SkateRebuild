@@ -23,7 +23,7 @@ CF.Admin = (() => {
     { k: 'Teleport', get: () => CF.World.spawns[st.spot].name + ' (Enter)', adj: d => { st.spot = (st.spot + d + CF.World.spawns.length) % CF.World.spawns.length; }, act: () => CF.Game.teleport(CF.World.spawns[st.spot]) },
     { k: 'Level', get: () => 'Lv ' + CF.Progress.level, adj: d => { CF.Progress.setLevel(CF.Progress.level + d); CF.Game.refreshHUD(); } },
     { k: '+10.000 XP', get: () => 'Enter', act: () => CF.Progress.addXP(10000) },
-    { k: 'Alle Outfits freischalten', get: () => 'Enter', act: () => { CF.Progress.unlockAll(); CF.Game.toast('Alle Outfits freigeschaltet'); } },
+    { k: 'Alle Skater freischalten', get: () => 'Enter', act: () => { CF.Progress.unlockAll(); CF.Game.toast('Alle Skater freigeschaltet'); } },
     { k: 'Alle Challenges abschließen', get: () => 'Enter', act: () => CF.Game.completeAll() },
     { k: '+50.000 Punkte', get: () => 'Enter', act: () => CF.Game.addScore(50000) },
     { k: 'Debug-Anzeige', get: () => onoff(st.debug), adj: () => { st.debug = !st.debug; $('debug').classList.toggle('show', st.debug); } },

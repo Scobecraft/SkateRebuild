@@ -11,9 +11,11 @@ import { FXAAShader } from './jsm/shaders/FXAAShader.js';
 import { GammaCorrectionShader } from './jsm/shaders/GammaCorrectionShader.js';
 import { ACESFilmicToneMappingShader } from './jsm/shaders/ACESFilmicToneMappingShader.js';
 import { mergeBufferGeometries } from './jsm/utils/BufferGeometryUtils.js';
+import { FBXLoader } from './jsm/loaders/FBXLoader.js';
+import * as SkeletonUtils from './jsm/utils/SkeletonUtils.js';
 
 window.THREE = Object.assign({}, THREE_NS);
-window.THREEX = { GLTFLoader, EffectComposer, RenderPass, ShaderPass, UnrealBloomPass, SSAOPass, Sky, FXAAShader, GammaCorrectionShader, ACESFilmicToneMappingShader, mergeBufferGeometries };
+window.THREEX = { GLTFLoader, EffectComposer, RenderPass, ShaderPass, UnrealBloomPass, SSAOPass, Sky, FXAAShader, GammaCorrectionShader, ACESFilmicToneMappingShader, mergeBufferGeometries, FBXLoader, SkeletonUtils };
 
 const files = ['audio', 'input', 'world', 'env', 'skater', 'player', 'npc', 'progress', 'replay', 'photo', 'admin', 'props', 'editor', 'game'];
 for (const f of files) {

@@ -8,7 +8,7 @@ CF.Progress = (() => {
   const MAX_LEVEL = 50;
   const RANKS = [[1, 'Rookie'], [5, 'Local'], [10, 'Park Rat'], [16, 'Amateur'], [24, 'Gesponsert'], [32, 'Pro'], [42, 'Legende']];
   // Outfit-Freischaltungen (Index in CF.OUTFITS → benötigtes Level)
-  const OUTFIT_LEVEL = [1, 1, 3, 5, 8, 12, 16, 20];
+  const OUTFIT_LEVEL = [1, 1, 1, 3, 5, 8, 12, 16, 20];
   const st = Object.assign({ xp: 0, streak: 0, bestStreak: 0, unlockAll: false }, store.get('progress', {}));
 
   // Benötigte Gesamt-XP für Level n (Level 1 = 0 XP)

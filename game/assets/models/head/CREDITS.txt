@@ -1,5 +1,0 @@
-Lee Perry-Smith Head
-Scan: Infinite Realities (Lee Perry-Smith) – https://www.ir-ltd.net
-Lizenz: Creative Commons Attribution 3.0 (CC BY 3.0) – https://creativecommons.org/licenses/by/3.0/
-Bezogen aus dem Three.js-Beispielarchiv (examples/models/gltf/LeePerrySmith).
-Änderungen: Schulterbereich zur Laufzeit abgeschnitten, Cap und Sonnenbrille ergänzt.

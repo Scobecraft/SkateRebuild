@@ -23,12 +23,12 @@ Windows SmartScreen kann beim ersten Start warnen, weil die EXE nicht signiert i
 - **Tag-Nacht-Zyklus**: physikalischer Himmel mit Sonne, Mond und Sternen. Nachts gehen Flutlichter, Laternen und die Fenster der Skyline an.
 - **Wetter**: klar, bewölkt, Regen (nasser, spiegelnder Boden), Gewitter mit Blitz und Donner, Nebel. Das Wetter wechselt automatisch oder lässt sich festlegen.
 - **Map-Editor**: eigene Skateparks bauen – auf leerer Fläche oder mit dem Megapark als Basis
-- **Realistischer Skater** mit echtem 3D-Kopfscan, anatomischem Körper, Händen mit Fingern, Hoodie, Jeans und Sneakern
+- **Realistische Menschen** als Skater und NPCs (professionell modellierte 3D-Personen mit Skelett, Gesichts- und Handknochen, PBR-Haut- und Kleidungstexturen), per inverser Kinematik aufs Board gestellt
 - **NPC-Skater**, die durch den Park fahren, Tricks machen, die Halfpipe fahren und in den Bowls carven
 - **Replay der letzten 2 Minuten** mit Zeitleiste, Zeitlupe, Einzelbild und frei fliegender Kamera
 - **Fotomodus** mit Freecam, FOV, Belichtung, Filtern, Vignette, Uhrzeit- und Wetterregler. Fotos landen unter `Bilder\Concrete Flow`.
 - **Controller**: Xbox, PlayStation und andere über XInput/Gamepad-API, mit **Vibration** bei Pop, Landung, Grind, Sturz und Donner
-- **Musik und Sounds**: drei eigene, prozedural generierte Tracks (Lo-Fi, Punk, Boom-Bap) und synthetisierte Soundeffekte (Rollen, Grind, Wind, Regen …)
+- **Musik und Sounds**: sieben echte Musiktracks (Punk, Hip-Hop, Lo-Fi, Funk) und echte Aufnahmen für Rollen, Pop, Landung, Metall- und Beton-Grinds, Stürze, Wind und Regen, mit Hall und tempoabhängiger Tonhöhe
 - **Grafik**: PBR-Fototexturen in 2K, HDR-Rendering mit SSAO, Bloom, ACES-Tonemapping, Farbkorrektur, FXAA, weiche 4K-Schatten und Umgebungsreflexionen. Drei Qualitätsstufen: Ultra, Hoch, Leistung.
 
 ## Steuerung
@@ -115,5 +115,5 @@ game/js/game.js      Spielablauf, HUD, Menüs, Post-Processing
 - Code: MIT
 - [Three.js](https://threejs.org) r149: MIT-Lizenz (`game/lib/THREE_LICENSE`)
 - Texturen und 3D-Modelle: [Poly Haven](https://polyhaven.com), Lizenz **CC0** (gemeinfrei). Verwendet wurden: concrete_floor_02, rough_concrete, wood_planks, red_bricks_04, asphalt_track, sparse_grass, cotton_jersey, denim_fabric, leather_white, bark_brown_02, rectangular_facade_tiles_02, concrete_road_barrier, painted_wooden_bench, modular_street_seating, metal_trash_can, fire_hydrant, planter_box_01 und modular_chainlink_fence.
-- Kopf des Skaters: „Lee Perry-Smith Head“ von Infinite Realities (Lee Perry-Smith), Lizenz [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). Bezogen über das Three.js-Beispielarchiv, zugeschnitten (Schultern entfernt) und mit Cap und Sonnenbrille kombiniert.
-- Musik und Sounds: zur Laufzeit synthetisiert, eigene Kompositionen
+- Menschen (Skater und NPCs): [Microsoft Rocketbox Avatar Library](https://github.com/microsoft/Microsoft-Rocketbox), MIT-Lizenz (`game/assets/people/ROCKETBOX_LICENSE.md`). Texturen in Web-Formate konvertiert.
+- Musik und Soundeffekte: CC0 (gemeinfrei) von OpenGameArt.org. Alle Urheber und Quellen stehen in `game/assets/audio/CREDITS.txt`. Der Donner wird zur Laufzeit erzeugt.

@@ -149,12 +149,13 @@ window.CF = window.CF || {};
 
   /* ---------------- Level-ups ---------------- */
   CF.onLevelUp = (lv, rank, unlocked) => {
-    popup(`LEVEL ${lv}!<br><small>Rang: ${rank}${unlocked.length ? ' · Neues Outfit: ' + unlocked.join(', ') : ''}</small>`, 'level', 3200);
+    popup(`LEVEL ${lv}!<br><small>Rang: ${rank}${unlocked.length ? ' · Neuer Skater: ' + unlocked.join(', ') : ''}</small>`, 'level', 3200);
     CF.Audio.levelUp(); CF.Input.rumble(0.5, 0.9, 450, true);
     if (lv >= 10) complete('level10');
     refreshHUD();
   };
   CF.onWeather = name => toast(`🌦 Wetterumschwung: ${name}`, 2600);
+  CF.onTrack = t => toast(`♫ ${t.name}<br><small>${t.by} · CC0</small>`, 3000);
 
   /* ---------------- Punkte, Combos & Streaks ---------------- */
   const session = { score: 0, mode: 'free', time: 0, best: store.get('best', 0), xp: 0 };
@@ -306,7 +307,7 @@ window.CF = window.CF || {};
         { label: 'Spot wählen', act: () => openMenu('spots') },
         { label: '🛠 Map-Editor', act: () => openMenu('editorMenu') },
         { label: 'Eigene Maps spielen', act: () => openMenu('myMaps') },
-        { label: () => 'Outfit: ' + CF.OUTFITS[settings.outfit].name, side: d => cycleOutfit(d), act: () => openMenu('outfits') },
+        { label: () => 'Skater: ' + CF.OUTFITS[settings.outfit].name, side: d => cycleOutfit(d), act: () => openMenu('outfits') },
         { label: 'Profil & Challenges', act: () => openMenu('goals') },
         { label: 'Einstellungen', act: () => openMenu('settings') },
         { label: 'Steuerung', act: () => openMenu('controls') },
@@ -320,7 +321,7 @@ window.CF = window.CF || {};
         { label: 'Replay ansehen (letzte 2 Min)', act: () => startReplay() },
         { label: 'Fotomodus', act: () => startPhoto('pause') },
         { label: 'Spot wählen', act: () => openMenu('spots') },
-        { label: () => 'Outfit: ' + CF.OUTFITS[settings.outfit].name, side: d => cycleOutfit(d), act: () => openMenu('outfits') },
+        { label: () => 'Skater: ' + CF.OUTFITS[settings.outfit].name, side: d => cycleOutfit(d), act: () => openMenu('outfits') },
         { label: 'Profil & Challenges', act: () => openMenu('goals') },
         { label: 'Einstellungen', act: () => openMenu('settings') },
         { label: 'Steuerung', act: () => openMenu('controls') },
@@ -328,7 +329,7 @@ window.CF = window.CF || {};
       ],
     }),
     outfits: () => ({
-      title: 'OUTFITS', items: CF.OUTFITS.map((o, i) => ({
+      title: 'SKATER WÄHLEN', items: CF.OUTFITS.map((o, i) => ({
         label: (CF.Progress.outfitUnlocked(i) ? (i === settings.outfit ? '✔ ' : '') + o.name : `🔒 ${o.name} (ab Level ${CF.Progress.outfitLevel(i)})`),
         act: () => { if (CF.Progress.outfitUnlocked(i)) { settings.outfit = i; CF.Skater.setOutfit(i); save(); } else toast(`🔒 Freischaltung ab Level ${CF.Progress.outfitLevel(i)}`); },
       })).concat([{ label: 'Zurück', act: back }]),
@@ -587,7 +588,7 @@ window.CF = window.CF || {};
       if (inp.pause) { if (editorTest) returnToEditor(); else pause(); finish(rdt, focusP, true); return; }
       if (inp.replay) { startReplay(); finish(rdt, focusP, true); return; }
       if (inp.photo) { startPhoto('play'); finish(rdt, focusP, true); return; }
-      if (inp.music) toast('♫ ' + CF.Audio.Music.next(), 2000);
+      if (inp.music) CF.Audio.Music.next();
       if (inp.camera) { settings.cam = (settings.cam + 1) % CAMS.length; save(); toast('Kamera: ' + CAMS[settings.cam].name, 1200); }
       if (inp.goals) $('goals').classList.toggle('show');
       Pl.update(dt, inp);
