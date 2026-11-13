@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Concrete Flow</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<div id="loading"><div class="logo">CONCRETE<span>FLOW</span></div><div class="lbar"><div id="load-bar"></div></div><div class="lsub">Lade Texturen …</div></div>
+
+<!-- HUD -->
+<div id="hud">
+  <div id="score-box"><div class="lbl">PUNKTE</div><div id="score">0</div><div id="timer" style="display:none">3:00</div>
+    <div id="level-box"><div class="lv"><span>LV</span><b id="lvl">1</b></div><div class="lvinfo"><div id="rank">Rookie</div><div class="xpwrap"><div id="xpbar"></div></div><div id="xptext"></div></div></div>
+    <div id="streak"><span class="fire">🔥</span><b id="streak-n">0</b><span>STREAK</span><em id="streak-b">×1,0</em></div>
+  </div>
+  <div id="clock">☀ 15:30</div>
+  <div id="speed">0 km/h</div>
+  <div id="combo"><div id="combo-tricks"></div><div class="row"><span id="combo-pts">0</span><span id="combo-mult">× 1</span></div></div>
+  <div id="balance"><div class="track"><div class="zone"></div><div id="needle"></div></div><div class="lbl">BALANCE</div></div>
+  <div id="hint"></div>
+  <div id="goals"><div class="head">CHALLENGES <span id="goals-count"></span></div><ul id="goals-list"></ul><div class="foot">Tab / Ⓧ zum Ausblenden</div></div>
+</div>
+<div id="popups"></div>
+<div id="vignette"></div>
+<div id="flash"></div>
+<div id="debug"></div>
+
+<!-- Replay -->
+<div id="replay">
+  <div class="rp-top">● REPLAY · letzte 2 Minuten</div>
+  <div class="rp-bottom">
+    <div id="rp-track"><div id="rp-bar"></div></div>
+    <div class="rp-row"><span id="rp-state"></span><span id="rp-time"></span></div>
+    <div class="rp-help">Leertaste/Ⓐ Play/Pause · ←/→ LB/RB Spulen (Shift = 10 s) · , . Einzelbild · ↑/↓ Tempo · C/Ⓨ Kamera (Folgen/Freecam/Orbit) · P/Ⓧ Fotomodus · H UI aus · Esc/Ⓑ Zurück<br>Freecam: WASD/L-Stick fliegen · Maus ziehen/R-Stick umsehen · Q/E LT/RT runter/hoch · Shift/L3 schnell · Mausrad Zoom</div>
+  </div>
+</div>
+
+<!-- Fotomodus -->
+<div id="photo">
+  <div class="panel ph">
+    <div class="ph-title">📷 FOTOMODUS</div>
+    <div id="ph-list"></div>
+    <div class="ph-help">↑/↓ Auswahl · ←/→ Ändern<br>WASD/L-Stick fliegen · Maus ziehen/R-Stick schauen · Q/E hoch/runter · Mausrad Zoom<br><b>Enter / F / Ⓐ = Foto aufnehmen</b> · H/Ⓨ Menü aus · Esc/Ⓑ zurück</div>
+  </div>
+</div>
+
+<!-- Verstecktes Admin-Menü -->
+<div id="admin">
+  <div class="panel adm">
+    <div class="ph-title">🔧 ADMIN · MODMENÜ</div>
+    <div id="admin-list"></div>
+    <div class="ph-help">↑/↓ Auswahl · ←/→ Ändern · Enter/Ⓐ Ausführen · Esc/Ⓑ Schließen</div>
+  </div>
+</div>
+<div id="toasts"></div>
+
+<!-- Menü -->
+<div id="menu">
+  <div class="panel">
+    <div id="menu-title"></div>
+    <div id="menu-sub"></div>
+    <div id="menu-html"></div>
+    <div id="menu-items"></div>
+    <div id="menu-footer"></div>
+  </div>
+</div>
+
+<div id="results">
+  <div class="panel">
+    <div class="t">SESSION VORBEI</div>
+    <div id="res-score">0</div>
+    <div id="res-best"></div>
+    <div class="btns"><button id="res-again" class="mbtn focus">Nochmal (Ⓐ / Enter)</button><button id="res-menu" class="mbtn">Hauptmenü (Ⓑ / Esc)</button></div>
+  </div>
+</div>
+
+<template id="controls-tpl">
+  <div class="controls">
+    <div>
+      <h3>🎮 Controller</h3>
+      <table>
+        <tr><td>Linker Stick</td><td>Lenken / Drehen in der Luft / Balance beim Grind</td></tr>
+        <tr><td>Ⓐ oder RT</td><td>Anschieben</td></tr>
+        <tr><td>Ⓑ oder LT</td><td>Bremsen</td></tr>
+        <tr><td>Rechter Stick ↓ → ↑</td><td>Ollie</td></tr>
+        <tr><td>↓ → ↖ / ↓ → ↗</td><td>Kickflip / Heelflip</td></tr>
+        <tr><td>↓ → ← / ↓ → →</td><td>360 Shove-It / Varial Kickflip</td></tr>
+        <tr><td>↓ → ← → ↑ (Halbkreis)</td><td>360 Flip</td></tr>
+        <tr><td>↓ → → → ↑ (Halbkreis)</td><td>Hardflip</td></tr>
+        <tr><td>LB / RB (in der Luft)</td><td>Melon / Indy Grab</td></tr>
+        <tr><td>Ⓨ · Ⓧ</td><td>Musik wechseln · Challenges</td></tr>
+        <tr><td>Steuerkreuz ↑ / ↓</td><td>Replay (letzte 2 Min) / Fotomodus</td></tr>
+        <tr><td>View · Menu · R3</td><td>Reset · Pause · Kamera</td></tr>
+      </table>
+    </div>
+    <div>
+      <h3>⌨ Tastatur &amp; Maus</h3>
+      <table>
+        <tr><td>W / S</td><td>Anschieben / Bremsen</td></tr>
+        <tr><td>A / D</td><td>Lenken, Spins, Balance</td></tr>
+        <tr><td>Maus halten &amp; ziehen</td><td>wie rechter Stick (↓ dann ↑ = Ollie)</td></tr>
+        <tr><td>Pfeiltasten</td><td>ebenfalls rechter Stick</td></tr>
+        <tr><td>Leertaste</td><td>Ollie</td></tr>
+        <tr><td>J K L</td><td>Kickflip · Heelflip · Shove-It</td></tr>
+        <tr><td>U I O</td><td>Varial · 360 Flip · Hardflip</td></tr>
+        <tr><td>Q / E</td><td>Melon / Indy Grab</td></tr>
+        <tr><td>R · C · M · Tab</td><td>Reset · Kamera · Musik · Challenges</td></tr>
+        <tr><td>V · F</td><td>Replay (letzte 2 Min) · Fotomodus</td></tr>
+        <tr><td>Esc · F11</td><td>Pause · Vollbild</td></tr>
+      </table>
+    </div>
+    <p class="tip">Tipps: Flips müssen vor der Landung fertig gedreht sein. Lande gerade oder fakie (rückwärts), nicht quer. Auf Rails hältst du mit Lenken die Balance. Combos werden erst nach einer sauberen Landung gutgeschrieben. Jede gelandete Combo ab 400 Punkten erhöht deinen Streak (+10 % Bonus pro Stufe, max. +100 %) – ein Sturz setzt ihn zurück. Punkte bringen XP, mit jedem Level steigt dein Rang und neue Outfits werden frei. Bei Regen ist der Boden nass und spiegelt, nachts gehen Flutlichter und Laternen an.</p>
+  </div>
+</template>
+
+<script type="importmap">{ "imports": { "three": "./lib/three.module.js" } }</script>
+<script type="module" src="lib/boot.mjs"></script>
+</body>
+</html>

@@ -1,0 +1,41 @@
+{
+  "name": "concrete-flow",
+  "productName": "Concrete Flow",
+  "version": "1.0.0",
+  "description": "Concrete Flow – ein 3D-Skateboard-Spiel für Windows 10 und 11",
+  "main": "main.js",
+  "author": "Scobecraft",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dist:win": "electron-builder --win --x64 --publish never"
+  },
+  "devDependencies": {
+    "electron": "33.4.11",
+    "electron-builder": "25.1.8"
+  },
+  "build": {
+    "appId": "com.scobecraft.concreteflow",
+    "productName": "Concrete Flow",
+    "copyright": "Concrete Flow",
+    "files": ["main.js", "package.json", "game/**/*", "build/icon.png"],
+    "directories": { "output": "dist", "buildResources": "build" },
+    "win": {
+      "target": [
+        { "target": "nsis", "arch": ["x64"] },
+        { "target": "portable", "arch": ["x64"] }
+      ],
+      "icon": "build/icon.ico",
+      "artifactName": "ConcreteFlow-${version}-${arch}-${target}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Concrete Flow"
+    },
+    "portable": { "artifactName": "ConcreteFlow-${version}-portable.exe" }
+  }
+}
