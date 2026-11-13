@@ -7,8 +7,8 @@ Ein eigenständiges 3D-Skateboard-Spiel für **Windows 10 und 11** mit Flick-Tri
 ## Download & Installation (Windows)
 
 1. Unter **Releases** (oder im Reiter **Actions → Windows-Build → Artefakte**) die neueste Version laden:
-   - `ConcreteFlow-…-x64-nsis.exe` – Installer mit Startmenü- und Desktop-Verknüpfung
-   - `ConcreteFlow-…-portable.exe` – ohne Installation direkt starten
+   - `ConcreteFlow-…-Setup.exe` – Installer mit Startmenü- und Desktop-Verknüpfung
+   - `ConcreteFlow-…-Portable.exe` – ohne Installation direkt starten
 2. Starten, Controller anschließen, losfahren.
 
 Windows SmartScreen kann beim ersten Start warnen, weil die EXE nicht signiert ist: **Weitere Informationen → Trotzdem ausführen**.

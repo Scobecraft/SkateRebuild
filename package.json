@@ -19,23 +19,43 @@
     "appId": "com.scobecraft.concreteflow",
     "productName": "Concrete Flow",
     "copyright": "Concrete Flow",
-    "files": ["main.js", "package.json", "game/**/*", "build/icon.png"],
-    "directories": { "output": "dist", "buildResources": "build" },
+    "files": [
+      "main.js",
+      "package.json",
+      "game/**/*",
+      "build/icon.png"
+    ],
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
     "win": {
       "target": [
-        { "target": "nsis", "arch": ["x64"] },
-        { "target": "portable", "arch": ["x64"] }
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
       ],
-      "icon": "build/icon.ico",
-      "artifactName": "ConcreteFlow-${version}-${arch}-${target}.${ext}"
+      "icon": "build/icon.ico"
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Concrete Flow"
+      "shortcutName": "Concrete Flow",
+      "artifactName": "ConcreteFlow-${version}-Setup.${ext}"
     },
-    "portable": { "artifactName": "ConcreteFlow-${version}-portable.exe" }
+    "portable": {
+      "artifactName": "ConcreteFlow-${version}-Portable.${ext}"
+    }
   }
 }
